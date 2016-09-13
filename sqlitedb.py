@@ -47,27 +47,28 @@ class DB():
 
     def __init__(self, path):
         self._db_file_path = str(DB._resolve_filename(path))
-        self.default_return_type = OutputType.namedtuple
+        self.default_output_type = OutputType.namedtuple
         self.connection = _sqlite3.connect(
             self._db_file_path, detect_types=_sqlite3.PARSE_DECLTYPES)
 
-    def query(self, sql, return_type=None):
+    def query(self, sql, params=None, output_type=None):
         """
-        Run the query specified in "sql". The "return_type" argument lets you
+        Run the query specified in "sql". The "output_type" argument lets you
         specify the type of object to return per row: namedtuple (default),
         tuple, or dictionary.
         """
-        if not return_type:
-            return_type = self.default_return_type
+        if not output_type:
+            output_type = self.default_output_type
         results = []
+        parameters = params if params else []
         with _closing(self.connection.cursor()) as cursor:
-            exec_result = cursor.execute(sql)
+            exec_result = cursor.execute(sql, parameters)
             columns = [column[0] for column in exec_result.description]
-            if return_type == OutputType.tuple:
+            if output_type == OutputType.tuple:
                 results = list(exec_result)
-            if return_type == OutputType.dict:
+            if output_type == OutputType.dict:
                 results = [dict(zip(columns, row)) for row in exec_result]
-            if return_type == OutputType.namedtuple:
+            if output_type == OutputType.namedtuple:
                 unique = DB._make_cols_unique(columns)
                 builder = _namedtuple('r', unique)
                 results = [builder._make(row) for row in exec_result]
@@ -84,11 +85,11 @@ class DB():
         """Run a SELECT * on table_name."""
         return self.query("SELECT * FROM " + table_name)
 
-    def rowcount(self, sql, params=None):
+    def rowcount(self, sql, params_seq=None):
         results = -25
         with _closing(self.connection.cursor()) as cursor:
             if params:
-                exec_result = cursor.executemany(sql, params)
+                exec_result = cursor.executemany(sql, params_seq)
             else:
                 exec_result = cursor.execute(sql)
             results = exec_result.rowcount
@@ -169,13 +170,13 @@ class DB():
     def list_tables(self):
         """List all the tables in the database."""
         tables = self.query(
-            "SELECT Name FROM sqlite_master WHERE type='table'", OutputType.tuple)
+            "SELECT Name FROM sqlite_master WHERE type='table'", output_type=OutputType.tuple)
         return tuple(x[0] for x in tables)
 
     def list_columns(self, table_name):
         """List all the columns in table_name."""
         results = self.query(
-            "PRAGMA table_info(" + table_name + ")", OutputType.tuple)
+            "PRAGMA table_info(" + table_name + ")", output_type=OutputType.tuple)
         return tuple((col[1], col[2]) for col in results)
 
     def _read_csv_to_namedtuple(self, path):
