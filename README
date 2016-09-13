@@ -1,0 +1,33 @@
+Small helper to dump stuff in SQLite DBs.
+
+
+Examples:
+
+>>> from sqlitedb import DB, OutputType
+>>> testing = DB("testing.db") # more details below
+>>> testing.insert_namedtuple("table_np", list_of_nt, create=True) # will create the table, defaults to False. Returns True if len(input) == records inserted.
+True	
+>>> testing.insert_csv("some data.csv") # table name is CSV file name minus extension. It  will be returned from the method
+some_data
+>>> testing.insert_dicts("table_dicts", list_of_dicts) # will go over the list and "normalize" the dicts, so that they all have the same keys. Returns True if len(input) == records inserted.
+True
+>>> testing.list_tables()
+('table_np', 'some_data', 'table_dicts') 
+>>> # can return list of dicts, tuples, or namedtuples. Default per DB instance and overridable in the call to query()
+>>> testing.query("SELECT * FROM table_np WHERE some_col = 'yeah'", OutputType.dict)
+
+
+If the database doesn't exists in the path specified, it is created. If the parameter is not a full path, then the DB will be created in "~/.sqlitedb".
+There's a rowcount() method that can work will execute() or executemany() if a list of params is provided.
+
+Type inference is made easy thanks to the SQLite flexibility:
+-Numbers: the column is created as INTEGER or FLOAT.
+-bytes or memoryview: column is a BLOB. Memoryviews are returned from sqlite3.Binary too.
+-Everything else: column is text
+
+This convenience is not available for CSVs, all types are TEXT because everything is read as a string.
+
+
+Contributors:
+Sebastián Monía - http://github.com/sebasmonia
+
