@@ -88,7 +88,7 @@ class DB():
     def rowcount(self, sql, params_seq=None):
         results = -25
         with _closing(self.connection.cursor()) as cursor:
-            if params:
+            if params_seq:
                 exec_result = cursor.executemany(sql, params_seq)
             else:
                 exec_result = cursor.execute(sql)
