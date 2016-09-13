@@ -17,18 +17,19 @@ True
 >>> testing.list_tables()
 ('table_np', 'some_data', 'table_dicts') 
 >>> # can return list of dicts, tuples, or namedtuples. Default can be set:
->>> testing.default_return_type
+>>> testing.default_output_type
 <OutputType.namedtuple: 1>
->>> # can also override the return type
->>> testing.query("SELECT * FROM table_np WHERE some_col = 'yeah'", OutputType.dict)
+>>> # the output type is overrideable for a single query() call
+>>> testing.query("SELECT * FROM table_np WHERE some_col = ?", params=('yeah',), output_type=OutputType.dict)
 
 
-If the database doesn't exists in the path specified, it is created. If the parameter is not a full path, then the DB will be created in "~/.sqlitedb".
+If the database doesn't exist in the path specified, it is created. If the parameter is not a full path, then the DB will be created in "~/.sqlitedb".
 There's a rowcount() method that will execute() or executemany() if a list of params is provided.
 
 Type inference is made easy given how flexible SQLite is:
 -Numbers: the column is created as INTEGER or FLOAT.
 -bytes or memoryview: column is a BLOB. Memoryviews are returned from sqlite3.Binary too.
+-date is mapped to DATE, datetime to TIMESTAMP
 -Everything else: column is text
 
 This convenience is not available for CSVs, all types are TEXT because everything is read as a string.
