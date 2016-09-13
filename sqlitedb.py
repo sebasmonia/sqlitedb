@@ -1,10 +1,10 @@
 """Helper to work with SQLite databases: create tables from sequences, query, etc."""
-
 import sqlite3 as _sqlite3
 import helperfunctions as _hf
 import os as _os
 import csv as _csv
 import pathlib as _pathlib
+import datetime as _datetime
 from collections import namedtuple as _namedtuple
 from contextlib import closing as _closing
 from enum import IntEnum as _IntEnum
@@ -48,7 +48,8 @@ class DB():
     def __init__(self, path):
         self._db_file_path = str(DB._resolve_filename(path))
         self.default_return_type = OutputType.namedtuple
-        self.connection = _sqlite3.connect(self._db_file_path)
+        self.connection = _sqlite3.connect(
+            self._db_file_path, detect_types=_sqlite3.PARSE_DECLTYPES)
 
     def query(self, sql, return_type=None):
         """
@@ -177,11 +178,12 @@ class DB():
             "PRAGMA table_info(" + table_name + ")", OutputType.tuple)
         return tuple((col[1], col[2]) for col in results)
 
-    def _read_csv_to_namedtuple(path):
+    def _read_csv_to_namedtuple(self, path):
         with open(path, encoding='utf-8') as f:
             header_text = next(f).rstrip('\n')
-            fields = [h.replace(' ', '_').lower() for h in header_text.split(',')]
-            row_creator = namedtuple('row', fields)
+            fields = [h.replace(' ', '_').lower()
+                      for h in header_text.split(',')]
+            row_creator = _namedtuple('row', fields)
             reader = _csv.reader(f)
             return list(map(row_creator._make, reader))
 
@@ -211,6 +213,10 @@ class DB():
             return "INT"
         if isinstance(t, float):
             return "REAL"
+        if isinstance(t, _datetime.date):
+            return "DATE"
+        if isinstance(t, _datetime.datetime):
+            return "TIMESTAMP"
         if isinstance(t, bytes):
             return "BLOB"
         if isinstance(t, memoryview):
