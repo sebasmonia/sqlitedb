@@ -155,6 +155,7 @@ class DB():
         """
         Insert a sequence of dicts in a table. The list if first "normalized"
         so that all dictionaries have the same keys.
+        WARNING: If the table exists, it is dropped and recreated.
         """
         def _normalize_dict(a_dict, keys):
             return {k: a_dict.get(k) for k in keys}
