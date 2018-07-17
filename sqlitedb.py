@@ -1,4 +1,6 @@
-"""Helper to work with SQLite databases: create tables from sequences, query, etc."""
+"""Helper to work with SQLite databases: create tables from sequences,
+query, etc."""
+
 import sqlite3 as _sqlite3
 import helperfunctions as _hf
 import os as _os
@@ -16,6 +18,7 @@ def _resolve_default_location():
     default_location = home_path / folder_name
     default_location.mkdir(exist_ok=True)
     return str(default_location)
+
 
 default_db_location = _resolve_default_location()
 
@@ -56,6 +59,7 @@ class DB():
         Run the query specified in "sql". The "output_type" argument lets you
         specify the type of object to return per row: namedtuple (default),
         tuple, or dictionary.
+        If the SQL is an UPDATE/INSERT, the row count is returned.
         """
         if not output_type:
             output_type = self.default_output_type
@@ -63,6 +67,9 @@ class DB():
         parameters = params if params else []
         with _closing(self.connection.cursor()) as cursor:
             exec_result = cursor.execute(sql, parameters)
+            if not exec_result.description:
+                return exec_result.rowcount  # Non-query
+            # Return the results formatted
             columns = [column[0] for column in exec_result.description]
             if output_type == OutputType.tuple:
                 results = list(exec_result)
@@ -118,7 +125,8 @@ class DB():
     def insert_namedtuple(self, table_name, stuff, create=False):
         """
         Insert a sequence of namedtuple into a table. The option parameter
-        "create" (default False) allows us to create and insert in a single call.
+        "create" (default False) allows us to create and insert in a
+        single call.
         """
         if not stuff:
             print("Collection is empty")
@@ -171,13 +179,15 @@ class DB():
     def list_tables(self):
         """List all the tables in the database."""
         tables = self.query(
-            "SELECT Name FROM sqlite_master WHERE type='table'", output_type=OutputType.tuple)
+            "SELECT Name FROM sqlite_master WHERE type='table'",
+            output_type=OutputType.tuple)
         return tuple(x[0] for x in tables)
 
     def list_columns(self, table_name):
         """List all the columns in table_name."""
         results = self.query(
-            "PRAGMA table_info(" + table_name + ")", output_type=OutputType.tuple)
+            "PRAGMA table_info(" + table_name + ")",
+            output_type=OutputType.tuple)
         return tuple((col[1], col[2]) for col in results)
 
     def _read_csv_to_namedtuple(self, path):
@@ -208,8 +218,8 @@ class DB():
 
     @staticmethod
     def _type_mapper(item, field_name):
-        # SQLite natively supports the following types: NULL, INTEGER, REAL, TEXT,
-        # BLOB.
+        # SQLite natively supports the following types: NULL, INTEGER,
+        # REAL, TEXT, BLOB.
         t = getattr(item, field_name)
         if isinstance(t, int):
             return "INT"
